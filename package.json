@@ -1,0 +1,44 @@
+{
+  "name": "@searchcode/cli",
+  "description": "Command-line client for searchcode.ai — search the source code of the public web from your terminal.",
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": "searchcode.ai <hello@searchcode.ai>",
+  "homepage": "https://searchcode.ai/docs/",
+  "keywords": [
+    "searchcode",
+    "source-code-search",
+    "website-technology",
+    "technology-lookup",
+    "web-intelligence",
+    "builtwith-alternative",
+    "publicwww-alternative",
+    "cli"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/searchcode-ai/searchcode-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/searchcode-ai/searchcode-cli/issues"
+  },
+  "bin": {
+    "searchcode": "src/index.js"
+  },
+  "files": [
+    "src"
+  ],
+  "dependencies": {
+    "@searchcode/core": "^0.1.0"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  }
+}
