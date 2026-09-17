@@ -3,6 +3,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { CUSTOMER_API_ROUTES } from '@searchcode/core';
 import { COMMANDS } from '../src/commands.js';
 
@@ -56,3 +57,32 @@ test('every parameter carries a description', () => {
     }
   }
 });
+
+// The renderer picks the row array by name, and the API names it after what it returns:
+// "sites" from a technology query, "domains" from the domain index, "results" from a search.
+// These payloads are the real gateway shapes. If the renderer stops recognising one, output
+// silently degrades to raw JSON — which is exactly the regression these pin down. The live
+// smoke test (scripts/smoke-public-clients.mjs) checks the same thing against production.
+const GATEWAY_SHAPES = [
+  ['technology query', { technology: 'React', total_sites: 1234567, sites: [{ domain: 'a.com', rank: 1 }], offset: 0 }],
+  ['domain index', { total: 42, total_is_exact: true, domains: [{ domain: 'b.com' }], limit: 10 }],
+  ['facet count', { kind: 'tech', signal: 'React', sites: 1234567 }],
+  ['search results', { results: [{ domain: 'c.com', blob_hash: 'x' }], next_cursor: null }],
+];
+
+for (const [name, payload] of GATEWAY_SHAPES) {
+  test(`the renderer reads the ${name} response shape`, async () => {
+    const source = await readFile(new URL('../src/index.js', import.meta.url), 'utf8');
+    const match = source.match(/const rows = ([^;]+);/);
+    assert.ok(match, 'the renderer no longer looks up rows the way this test expects');
+    const known = [...match[1].matchAll(/payload\.([a-z_]+)/g)].map((m) => m[1]);
+    const arrayKey = Object.keys(payload).find((k) => Array.isArray(payload[k]));
+    if (arrayKey) {
+      assert.ok(
+        known.includes(arrayKey),
+        `the renderer would print raw JSON for a ${name}: it returns "${arrayKey}", ` +
+          `and the renderer only knows ${known.join(', ')}`,
+      );
+    }
+  });
+}

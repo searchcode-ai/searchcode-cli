@@ -79,11 +79,21 @@ function commandHelp(command) {
 
 /** Render a response as readable text; --json prints the raw payload instead. */
 function render(payload) {
-  const rows = payload.results ?? payload.rows ?? payload.domains ?? payload.items;
+  // The API names its row array after the thing it returns: "sites" for a technology query,
+  // "domains" for the domain index, "results" for a search, and so on. scripts/smoke-public-
+  // clients.mjs asserts against the live API that every key a command can return is listed here,
+  // because an unlisted key silently degrades this command to raw JSON.
+  const rows = payload.sites ?? payload.domains ?? payload.results ?? payload.rows
+    ?? payload.products ?? payload.shops ?? payload.hits ?? payload.items;
   if (!Array.isArray(rows)) return JSON.stringify(payload, null, 2);
   if (rows.length === 0) return 'No results.';
   const out = [];
-  if (typeof payload.total === 'number') out.push(`${payload.total} total`, '');
+  // Likewise the count: "total_sites" for a technology query, "total" for the domain index.
+  const total = payload.total_sites ?? payload.total ?? payload.sites;
+  if (typeof total === 'number') {
+    const approx = payload.total_is_exact === false ? 'about ' : '';
+    out.push(`${approx}${total.toLocaleString('en-US')} total`, '');
+  }
   for (const row of rows) {
     if (typeof row === 'string') { out.push(row); continue; }
     const primary = row.domain ?? row.name ?? row.host ?? row.title ?? '';
