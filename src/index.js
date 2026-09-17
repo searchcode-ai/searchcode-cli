@@ -79,6 +79,11 @@ function commandHelp(command) {
 
 /** Render a response as readable text; --json prints the raw payload instead. */
 function render(payload) {
+  // A count response carries no rows, just the number. Render the sentence, not the JSON.
+  if (typeof payload.sites === 'number') {
+    const what = payload.signal ? ` use ${payload.signal}` : '';
+    return `${payload.sites.toLocaleString('en-US')} sites${what}`;
+  }
   // The API names its row array after the thing it returns: "sites" for a technology query,
   // "domains" for the domain index, "results" for a search, and so on. scripts/smoke-public-
   // clients.mjs asserts against the live API that every key a command can return is listed here,
@@ -96,15 +101,19 @@ function render(payload) {
   }
   for (const row of rows) {
     if (typeof row === 'string') { out.push(row); continue; }
-    const primary = row.domain ?? row.name ?? row.host ?? row.title ?? '';
+    const primary = row.reg_domain ?? row.domain ?? row.name ?? row.host ?? row.title ?? '';
     const rest = Object.entries(row)
-      .filter(([k, v]) => k !== 'domain' && k !== 'name' && typeof v !== 'object')
+      .filter(([k, v]) => !['reg_domain', 'domain', 'name', 'host', 'title'].includes(k) && typeof v !== 'object')
       .map(([k, v]) => `${k}=${v}`)
       .join('  ');
     out.push(primary ? `${primary}  ${rest}` : rest);
   }
   if (payload._creditsRemaining !== undefined) {
-    out.push('', `credits remaining: ${payload._creditsRemaining}`);
+    // Enterprise keys are uncapped and report a u64 sentinel rather than a balance.
+    const unlimited = payload._creditsRemaining > Number.MAX_SAFE_INTEGER;
+    out.push('', unlimited
+      ? 'credits remaining: unlimited'
+      : `credits remaining: ${payload._creditsRemaining.toLocaleString('en-US')}`);
   }
   return out.join('\n');
 }
