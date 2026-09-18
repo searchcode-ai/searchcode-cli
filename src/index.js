@@ -2,6 +2,8 @@
 // GENERATED from the searchcode.ai customer API contract. Do not edit by hand.
 // searchcode.ai command-line client.
 
+import { realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { Api, ApiError, configFromEnv, creditsFor, hintFor, minTierFor } from '@searchcode/core';
 import { COMMANDS } from './commands.js';
 
@@ -169,6 +171,21 @@ export async function main(argv = process.argv.slice(2)) {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+/**
+ * True when this module is the process entrypoint. npm installs a bin as a symlink, so
+ * process.argv[1] is the link while import.meta.url is the real file; comparing them directly
+ * never matches through an install and the command exits silently. realpath both sides.
+ */
+function isEntrypoint(moduleUrl) {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  try {
+    return realpathSync(fileURLToPath(moduleUrl)) === realpathSync(entry);
+  } catch {
+    return false;
+  }
+}
+
+if (isEntrypoint(import.meta.url)) {
   main().then((code) => { process.exitCode = code; });
 }

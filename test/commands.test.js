@@ -50,6 +50,19 @@ test('path parameters are positional, query parameters are flags', () => {
   }
 });
 
+// npm installs a bin as a symlink. A guard that compares import.meta.url to process.argv[1]
+// directly never matches through an install, so the command exits 0 and prints nothing — the
+// failure mode is silence, which is why it survived every other test. Verified by running the
+// packed tarball through a real npm install.
+test('the entrypoint guard survives the npm bin symlink', async () => {
+  const source = await readFile(new URL('../src/index.js', import.meta.url), 'utf8');
+  assert.ok(
+    !source.includes('import.meta.url === '),
+    'comparing import.meta.url to argv[1] breaks when npm installs the bin as a symlink',
+  );
+  assert.match(source, /realpathSync/, 'the entrypoint check must resolve symlinks');
+});
+
 test('every parameter carries a description', () => {
   for (const command of COMMANDS) {
     for (const param of [...command.positional, ...command.flags]) {
